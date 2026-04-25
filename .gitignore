@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+env/
+ragenv/
+.venv/
+.env/
+
+# Environment variables
+.env
+.env.*
+
+# FAISS vector database
+db/
+*.faiss
+*.pkl
+
+# Session history
+sessions/
+
+# PDF documents
+data/*.pdf
+
+# OS
+.DS_Store
+Thumbs.db
