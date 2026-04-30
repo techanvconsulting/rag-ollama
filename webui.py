@@ -1,5 +1,4 @@
 import os
-import time
 import json
 import uuid
 import streamlit as st
@@ -46,8 +45,8 @@ with st.sidebar:
                     file_path = os.path.join(data_folder, uploaded_file.name)
                     with open(file_path, "wb") as f:
                         f.write(uploaded_file.getbuffer())
-                time.sleep(3)
-
+            if 'vectorstore' in st.session_state:
+                del st.session_state['vectorstore']
             st.success("Files uploaded and saved successfully!")
 
         if st.button("New Conversation"):
@@ -70,7 +69,7 @@ if 'docs' not in st.session_state:
 if 'vectorstore' not in st.session_state:
     chunks = split_docs(st.session_state.docs)
     embeddings_model = call_embed_model("sentence-transformers/all-MiniLM-L12-v2")
-    st.session_state.vectorstore = init_db(chunks, embeddings_model, db_path, embeddings_model)
+    st.session_state.vectorstore = init_db(chunks, embeddings_model, db_path)
     add_db_docs(st.session_state.vectorstore, data_folder, db_path, embeddings_model)
 
 for message in st.session_state.conversation:
@@ -82,32 +81,35 @@ chat_history = get_session_history(st.session_state.session_id)
 prompt = st.chat_input("Say something")
 
 if prompt:
-    with st.chat_message("human"):
-        st.write(prompt)
-        st.session_state.conversation.append({"role": "human", "message": prompt})
+    if st.session_state.vectorstore is None:
+        st.warning("No documents loaded. Upload PDFs using the sidebar first.")
+    else:
+        with st.chat_message("human"):
+            st.write(prompt)
+            st.session_state.conversation.append({"role": "human", "message": prompt})
 
-    retriever = retrieve_docs(prompt, st.session_state.vectorstore, similar_docs_count=5, see_content=False)
-    rag_chain = setup_chain("llama3", retriever)
+        retriever = retrieve_docs(prompt, st.session_state.vectorstore, similar_docs_count=5, see_content=False)
+        rag_chain = setup_chain("llama3", retriever)
 
-    conversational_rag_chain = RunnableWithMessageHistory(
-        rag_chain,
-        lambda _: chat_history,
-        input_messages_key="input",
-        history_messages_key="chat_history",
-        output_messages_key="answer",
-    )
+        conversational_rag_chain = RunnableWithMessageHistory(
+            rag_chain,
+            lambda _: chat_history,
+            input_messages_key="input",
+            history_messages_key="chat_history",
+            output_messages_key="answer",
+        )
 
-    with st.chat_message("ai"):
-        answer = ""
-        placeholder = st.empty()
+        with st.chat_message("ai"):
+            answer = ""
+            placeholder = st.empty()
 
-        for response_chunk in conversational_rag_chain.stream(
-            {"input": prompt},
-            config={"configurable": {"session_id": session_id}},
-        ):
-            if 'answer' in response_chunk:
-                answer += response_chunk["answer"]
-                placeholder.write(answer)
+            for response_chunk in conversational_rag_chain.stream(
+                {"input": prompt},
+                config={"configurable": {"session_id": session_id}},
+            ):
+                if 'answer' in response_chunk:
+                    answer += response_chunk["answer"]
+                    placeholder.write(answer)
 
-        st.session_state.conversation.append({"role": "ai", "message": answer})
-        save_session_history(st.session_state.session_id)
+            st.session_state.conversation.append({"role": "ai", "message": answer})
+            save_session_history(st.session_state.session_id)

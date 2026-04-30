@@ -1,11 +1,7 @@
-from langchain import hub
-from langchain_community.chat_models import ChatOllama
+from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains import create_retrieval_chain, create_history_aware_retriever
 from langchain.chains.combine_documents import create_stuff_documents_chain
-
-def format_docs(docs):
-    return "\n\n".join(doc.page_content for doc in docs)
 
 def setup_chain(model_name, retriever):
     llm = ChatOllama(model=model_name, base_url="http://127.0.0.1:11434", keep_alive=-1)

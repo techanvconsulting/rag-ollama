@@ -3,7 +3,7 @@ def retrieve_docs(question, vector_store, similar_docs_count, see_content: bool 
     retrieved_docs = retriever.invoke(question)
 
     if see_content:
-        for i in range(similar_docs_count):
-            print(retrieved_docs[i].page_content)
+        for doc in retrieved_docs:
+            print(doc.page_content)
 
     return retriever

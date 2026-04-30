@@ -7,7 +7,6 @@ from helpers.chain_handler import setup_chain
 from helpers.docs_db_handler import init_db, add_db_docs, load_docs
 from helpers.session_handler import get_session_history, save_session_history
 from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain_core.messages import AIMessage, HumanMessage
 
 session_id = str(uuid.uuid4())
 
@@ -22,9 +21,13 @@ chunks = split_docs(docs)
 embed_model_name = "sentence-transformers/all-MiniLM-L12-v2"
 embeddings_model = call_embed_model(embed_model_name)
 
-vectorstore = init_db(chunks, embeddings_model, db_path, embeddings_model)
+vectorstore = init_db(chunks, embeddings_model, db_path)
 
 add_db_docs(vectorstore, data_folder, db_path, embeddings_model)
+
+if vectorstore is None:
+    print("No documents found in data/ folder. Add PDFs and restart.")
+    exit(1)
 
 chat_history = get_session_history(session_id)
 
@@ -52,8 +55,5 @@ while True:
         if 'answer' in chunk:
             print(chunk['answer'], end="", flush=True)
             answer += chunk['answer']
-
-    chat_history.add_user_message(question)
-    chat_history.add_ai_message(answer)
 
     save_session_history(session_id)
